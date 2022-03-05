@@ -4,10 +4,8 @@ AM:         4914
 Username:   cse94914
 """
 
-# to run from cmd: python compiler.py fibonacci.c
-
-import sys
 from FileParser import FileParser
+from LexicalAnalyser import LexicalAnalyser
 
 reservedWords = ["program", "declare", "if", "else",  "while", "switchcase",
                  "forcase", "incase", "case", "default", "not", "and", "or",
@@ -18,14 +16,13 @@ class Compiler:
     def __init__(self, filename):
         self.filename = filename
         self.fileParser = FileParser(filename)
+        self.lexicalAnalyser = LexicalAnalyser(self.fileParser)
         
     def runLexicalAnalyser(self):
-        print("Firing lexical analyser ...")
         
-        for i in range(20):
-            print(self.fileParser.getNextCharacter())
-        
-        return
+        nextLexicalUnit = self.lexicalAnalyser.getNextLexicalUnit()
+
+        return nextLexicalUnit
         
     def runSyntaxAnalyser(self):
         print("Firing syntax analyser ...")
@@ -42,20 +39,3 @@ class Compiler:
     
     def generateCode(self):
         return
-       
-
-
-    
-#print(len(sys.argv))
-
-if len(sys.argv) != 2:
-    print("Wrong arguments. Must give just the filename")
-    exit(1)
-
-filename = sys.argv[1]
-#print(filename)
-
-compiler = Compiler(filename)
-
-compiler.runLexicalAnalyser()
-
