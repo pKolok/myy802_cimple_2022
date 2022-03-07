@@ -4,107 +4,148 @@ AM:         4914
 Username:   cse94914
 """
 
+class Token:
+    
+    def __init__(self, lexicalUnit, family, position):
+        self.lexicalUnit = lexicalUnit
+        self.family = family
+        self.position = position
+
 class LexicalAnalyser:
     def __init__(self, fileParser):
         self.fileParser = fileParser
         self.nextChar = " "
+        self.lexicalUnit = ""
+        self.state = "start"
         self.row = 1
         self.col = 0
-        self.ignoreSymbos = [" ", "\t", "\n"]
-        self.selfStandingSymbols = ["+", "-", "*", "/", "=", ",", ";", ")", 
-                                    "(", "[", "]", "{", "}", ".", ""]
-              
+        self.ignoreSymbols = [" ", "\t", "\n"]
+        self.states = [['start', 'idk', 'dig', 'addOperator', 'mulOperator',
+                         'groupSymbol', 'delimiter', 'delimiter', 'asgn',
+                         'smaller', 'larger', 'relOperator', 'rem', 'error'],
+                       ['id/key', 'idk', 'idk', 'id/key', 'id/key', 'id/key',
+                        'id/key', 'id/key', 'id/key', 'id/key', 'id/key',
+                        'id/key', 'id/key', 'id/key'],
+                       ['number', 'error', 'dig', 'number', 'number', 'number',
+                        'number', 'number', 'number', 'number', 'number',
+                        'number', 'number', 'number'],
+                       ['error', 'error', 'error', 'error', 'error', 'error',
+                        'error', 'error', 'error', 'error', 'error',
+                        'assignment', 'error', 'error'],
+                       ['relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperator', 'relOperator',
+                        'relOperatorBt', 'relOperatorBt'],
+                       ['relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt', 'relOperator',
+                        'relOperatorBt', 'relOperatorBt'],
+                       ['rem', 'rem', 'rem', 'rem', 'rem', 'rem', 'rem',
+                        'error', 'rem', 'rem', 'rem', 'rem', 'start', 'rem'] ]
+
+        self.internalState = {'start' : 0, 'idk' : 1, 'dig' : 2, 'asgn' : 3,
+                              'smaller' : 4, 'larger' : 5, 'rem' : 6}
+
+        self.reservedWords = ["program", "declare", "if", "else",  "while",
+                              "switchcase", "forcase", "incase", "case",
+                              "default", "not", "and", "or", "function",
+                              "procedure", "call", "return", "in", "inout", 
+                              "input", "print"]
+        
+    """
+    Returns the lexical unit token to the syntax analyser.
+    According to the current state it consumes the next char or not.
+    """
     def getNextLexicalUnit(self):
         
-        lexicalUnit = ""
-        # char = self.__nextChar()
-        char = self.nextChar
+        self.state = "start"
+        self.lexicalUnit = ""
         
-        # White character -> stay in state 0
-        while (char in self.ignoreSymbos):
-            char = self.__nextChar()
-        
-        # Comments -> go to state 6
-        if (char == "#"):
-            char = self.__nextChar()
-            while (char != "#"):
-                if (char == ""):    # EOF
-                    return ("LexError at ({},{}) - Unexpected End Of File (EOF)"
-                            .format(self.row, self.col))
-                char = self.__nextChar()
+        while True:
             
-            char = self.__nextChar()
-            while (char in self.ignoreSymbos):
-                char = self.__nextChar()
-        
-        # Alphanumerical -> go to state 1
-        if (char.isalpha()):
-            lexicalUnit += char
-            char = self.__nextChar()
-            while (char.isalpha() or char.isdigit()):
-                lexicalUnit += char
-                char = self.__nextChar()
+            previousState = self.state
             
-            self.nextChar = char
-            return lexicalUnit
-    
-        # Digit -> go to state 2
-        if (char.isdigit()):
-            lexicalUnit += char
-            char = self.__nextChar()
-            while (char.isdigit()):
-                lexicalUnit += char
-                char = self.__nextChar()
+            # Get state array index accoding to next input character
+            inputVal = self.__getNextInputIndex(self.nextChar)
+                
+            # find next state from table of states
+            self.state = self.states[self.internalState[self.state]][inputVal]
             
-            self.nextChar = char
-            return lexicalUnit
-            
-        # Less-than (<) -> go to state 3
-        if (char == "<"):
-            lexicalUnit += char
-            char = self.__nextChar()
-            if (char == "" or char == ">"):
-                lexicalUnit += char
+            # Take action according to state
+            if (self.state in ["start", "rem"]):
                 self.nextChar = self.__nextChar()
-                return lexicalUnit
-            else:
-                self.nextChar = char
-                return lexicalUnit
-    
-        # Greater-than (>) -> go to state 4
-        if (char == ">"):
-            lexicalUnit += char
-            char = self.__nextChar()
-            if (char == "="):
-                lexicalUnit += char
+            elif (self.state in ["idk", "dig", "asgn", "smaller", "larger"]):
+                self.lexicalUnit += self.nextChar
                 self.nextChar = self.__nextChar()
-                return lexicalUnit
-            else:
-                self.nextChar = char
-                return lexicalUnit
-            
-        # Colon (>) -> go to state 5
-        if (char == ":"):
-            lexicalUnit += char
-            char = self.__nextChar()
-            if (char == "="):
-                lexicalUnit += char
+            elif (self.state == "id/key"):
+                # check for lexical units with more than 30 characters
+                if (len(self.lexicalUnit) > 30):
+                    msg = " Lexical unit is more than 30 characters long"
+                    error = ("LexError at {}.".format((self.row, self.col)) + msg)
+                    return Token(error, "error", (self.row, self.col))
+                
+                if (self.lexicalUnit in self.reservedWords):
+                    return Token(self.lexicalUnit, "identifier", 
+                                 (self.row, self.col))
+                else:
+                    return Token(self.lexicalUnit, "keyword", 
+                                 (self.row, self.col))
+            elif (self.state == "number"):
+                # check for numbers < -2^32-1 or > 2^32-1
+                if (abs(int(self.lexicalUnit)) > 4294967295):
+                    msg = " Number exceeds maximum supported"
+                    error = ("LexError at {}.".format((self.row, self.col)) + msg)
+                    return Token(error, "error", (self.row, self.col))
+                
+                return Token(self.lexicalUnit, self.state, 
+                             (self.row, self.col))
+            elif (self.state in ["addOperator", "mulOperator", "groupSymbol",
+                                 "delimiter", "assignment", "relOperator"]):
+                self.lexicalUnit += self.nextChar
                 self.nextChar = self.__nextChar()
-                return lexicalUnit
-            else:
-                return ("LexError at ({},{}) - expected '=' sign after ':' sign"
-                        .format(self.row, self.col))
-    
-        # Language recognised self-standing symbols
-        if (char in self.selfStandingSymbols):
-            lexicalUnit += char
-            self.nextChar = self.__nextChar()
-            return lexicalUnit
+                return Token(self.lexicalUnit, self.state, 
+                             (self.row, self.col))
+            elif (self.state == "relOperatorBt"):
+                return Token(self.lexicalUnit, "relOperator", 
+                             (self.row, self.col))
+            elif (self.state == "error"):
+                msg = self.__getErrorMessage(previousState)   
+                error = ("LexError at {}.".format((self.row, self.col)) + msg)
+                return Token(error, self.state, (self.row, self.col))
+
+
+    def __getNextInputIndex(self, char):
         
-        # If none of the above -> not a language character
-        # self.nextChar = self.__nextChar()
-        return ("LexError at ({},{}) - Unrecognised character: {}"
-                .format(self.row, self.col, char))
+           if (char in self.ignoreSymbols):
+               return 0
+           elif (char.isalpha()):
+               return 1
+           elif (char.isdigit()):
+               return 2
+           elif (char in ["+", "-"]):
+               return 3
+           elif (char in ["*", "/"]):
+               return 4
+           elif (char in ["{", "}", "[", "]", "(", ")"]):
+               return 5
+           elif (char in [",", ";"]):
+               return 6
+           elif (char == "."):
+               return 7
+           elif (char == ":"):
+               return 8
+           elif (char == "<"):
+               return 9
+           elif (char == ">"):
+               return 10
+           elif (char == "="):
+               return 11
+           elif (char == "#"):
+               return 12
+           else:
+               return 13
     
     
     def __nextChar(self):
@@ -117,6 +158,16 @@ class LexicalAnalyser:
             self.col = 0
         
         return char   
+    
+    def __getErrorMessage(self, previousState):
+        if (previousState == "start"):
+            return " Character not supported"
+        elif (previousState == "dig"):
+            return " Alphanumeric character in digit"
+        elif (previousState == "asgn"):
+            return" Illegal character after :. Expected ="
+        elif (previousState == "rem"):
+            return " Comment block closing sign (#) missing"
 
 
 ###############################################################################
@@ -135,21 +186,20 @@ def test_countDigits():
                     '}', ';', 'print', '(', 'count', ')', ';', '}', '.']
 
     i = 0
-    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
     while (nextLexicalUnit != "."):
         
         # print(nextLexicalUnit)
         # print(correctWords[i])
         assert nextLexicalUnit == correctWords[i], nextLexicalUnit
         
-        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
         i += 1
     
     # print(nextLexicalUnit)
     assert nextLexicalUnit == correctWords[i], nextLexicalUnit
     
     print("Test case countDigits.c: Everything passed")
-
 
 def test_factorial():
     
@@ -159,19 +209,19 @@ def test_factorial():
     correctWords = ['program', 'factorial', '{', 'declare', 'x', ';',
                     'declare', 'i', ',', 'fact', ';', 'input', '(', 'x', ')',
                     ';', 'fact', ':=', '1', ';', 'i', ':=', '1', ';', 'while',
-                    '(', 'i', '<', '=', 'x', ')', '{', 'fact', ':=', 'fact',
+                    '(', 'i', '<=', 'x', ')', '{', 'fact', ':=', 'fact',
                     '*', 'i', ';', 'i', ':=', 'i', '+', '1', ';', '}', ';',
                     'print', '(', 'fact', ')', ';', '}', '.']
 
     i = 0
-    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
     while (nextLexicalUnit != "."):
         
         # print(nextLexicalUnit)
         # print(correctWords[i])
         assert nextLexicalUnit == correctWords[i], nextLexicalUnit
         
-        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
         i += 1
     
     # print(nextLexicalUnit)
@@ -179,7 +229,6 @@ def test_factorial():
     
     print("Test case factorial.c: Everything passed")
     
-
 def test_fibonacci():
     
     fileParser = FileParser("fibonacci.c")
@@ -193,22 +242,21 @@ def test_fibonacci():
                     'fibonacci', '(', 'in', 'x', ')', ')', ';', '}', '.']
 
     i = 0
-    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
     while (nextLexicalUnit != "."):
         
         # print(nextLexicalUnit)
         # print(correctWords[i])
         assert nextLexicalUnit == correctWords[i], nextLexicalUnit
         
-        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
         i += 1
     
     # print(nextLexicalUnit)
     assert nextLexicalUnit == correctWords[i], nextLexicalUnit
     
     print("Test case factorial.c: Everything passed")
-    
-    
+      
 def test_primes():
     
     fileParser = FileParser("primes.c")
@@ -224,19 +272,19 @@ def test_primes():
                     'i', ',', 'in', 'x', ')', '=', '1', ')', 'return', '(',
                     '0', ')', ';', ';', 'i', ':=', 'i', '+', '1', '}', ';',
                     'return', '(', '1', ')', '}', 'i', ':=', '2', ';', 'while',
-                    '(', 'i', '<', '=', '30', ')', 'if', '(', 'isPrime', '(',
+                    '(', 'i', '<=', '30', ')', 'if', '(', 'isPrime', '(',
                     'in', 'i', ')', '=', '1', ')', 'print', '(', 'i', ')', ';',
                     ';', '}', '.']
 
     i = 0
-    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
     while (nextLexicalUnit != "."):
         
         # print(nextLexicalUnit)
         # print(correctWords[i])
         assert nextLexicalUnit == correctWords[i], nextLexicalUnit
         
-        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
         i += 1
     
     # print(nextLexicalUnit)
@@ -244,7 +292,6 @@ def test_primes():
     
     print("Test case primes.c: Everything passed")
         
-
 def test_summation():
     
     fileParser = FileParser("summation.c")
@@ -257,45 +304,55 @@ def test_summation():
                     '}', 'default', 'print', '(', 'sum', ')', ';', '}', '.']
 
     i = 0
-    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
     while (nextLexicalUnit != "."):
         
         # print(nextLexicalUnit)
         # print(correctWords[i])
         assert nextLexicalUnit == correctWords[i], nextLexicalUnit
         
-        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+        nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit().lexicalUnit
         i += 1
     
     # print(nextLexicalUnit)
     assert nextLexicalUnit == correctWords[i], nextLexicalUnit
     
-    print("Test case summation.c: Everything passed")    
-    
+    print("Test case summation.c: Everything passed")   
+      
 
 if __name__ == "__main__":
     
     from FileParser import FileParser
     
-    # test_countDigits()
-    # test_factorial()
-    # test_fibonacci()
-    # test_primes()
-    # test_summation()
+    automaticTesting = False
+    manualTesting = True
     
-    filename = ("summation.c")
-    fileParser = FileParser(filename)
+    if automaticTesting:
+        test_countDigits()
+        test_factorial()
+        test_fibonacci()
+        test_primes()
+        test_summation()
     
-    lexicalAnalyser = LexicalAnalyser(fileParser)
-    
-    nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
-    while (nextLexicalUnit != "."):
+    if manualTesting:
         
-        if (nextLexicalUnit.startswith("LexError")):
-            break
-
-        print(nextLexicalUnit)        
+        filename = ("factorial.c")
+        fileParser = FileParser(filename)
+        
+        lexicalAnalyser = LexicalAnalyser(fileParser)
         
         nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+        while (nextLexicalUnit.lexicalUnit != "."):
+            
+            if (nextLexicalUnit.lexicalUnit.startswith("LexError")):
+                break
     
-    print(nextLexicalUnit)
+            print("{}\t\t\t family: {},\t position: {}"
+                  .format(nextLexicalUnit.lexicalUnit, nextLexicalUnit.family,
+                          nextLexicalUnit.position))        
+            
+            nextLexicalUnit = lexicalAnalyser.getNextLexicalUnit()
+        
+        print("{}\t family: {},\t position: {}"
+              .format(nextLexicalUnit.lexicalUnit, nextLexicalUnit.family,
+                      nextLexicalUnit.position))
