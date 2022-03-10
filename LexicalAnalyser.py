@@ -4,6 +4,7 @@ AM:         4914
 Username:   cse94914
 """
 
+import sys
 from FileParser import FileParser
 
 class Token:
@@ -21,7 +22,9 @@ class LexicalAnalyser:
         self.lexicalUnit = ""
         self.state = "start"
         self.row = 1
-        self.col = 0
+        self.col = 1
+        self.nextRow = 1
+        self.nextCol = 1
         self.ignoreSymbols = [" ", "\t", "\n"]
         self.states = [['start', 'idk', 'dig', 'addOperator', 'mulOperator',
                         'groupSymbol', 'delimiter', 'asgn', 'smaller',
@@ -63,6 +66,8 @@ class LexicalAnalyser:
         
         self.state = "start"
         self.lexicalUnit = ""
+        self.row = self.nextRow
+        self.col = self.nextCol
         
         while True:
             
@@ -86,8 +91,11 @@ class LexicalAnalyser:
                 # check for lexical units with more than 30 characters
                 if (len(self.lexicalUnit) > 30):
                     msg = " Lexical unit is more than 30 characters long"
-                    error = ("LexError at {}.".format((self.row, self.col)) + msg)
-                    return Token(error, "error", (self.row, self.col))
+                    error = ("LexError at {}.".format((self.row, self.col)) 
+                             + msg)
+                    # return Token(error, "error", (self.row, self.col))
+                    print(error)
+                    sys.exit()
                 
                 if (self.lexicalUnit in self.reservedWords):
                     return Token(self.lexicalUnit, "keyword", 
@@ -100,8 +108,11 @@ class LexicalAnalyser:
                 # check for numbers < -2^32-1 or > 2^32-1
                 if (abs(int(self.lexicalUnit)) > 4294967295):
                     msg = " Number exceeds maximum supported"
-                    error = ("LexError at {}.".format((self.row, self.col)) + msg)
-                    return Token(error, "error", (self.row, self.col))
+                    error = ("LexError at {}.".format((self.row, self.col)) 
+                             + msg)
+                    # return Token(error, "error", (self.row, self.col))
+                    print(error)
+                    sys.exit()
                 
                 return Token(self.lexicalUnit, self.state, 
                              (self.row, self.col))
@@ -122,7 +133,9 @@ class LexicalAnalyser:
             elif (self.state == "error"):
                 msg = self.__getErrorMessage(previousState)   
                 error = ("LexError at {}.".format((self.row, self.col)) + msg)
-                return Token(error, self.state, (self.row, self.col))
+                # return Token(error, self.state, (self.row, self.col))
+                print(error)
+                sys.exit()
 
     def __getNextInputIndex(self, char):
         
@@ -156,15 +169,17 @@ class LexicalAnalyser:
                return 13
         
     def __nextChar(self):
-        char = self.fileParser.getNextCharacter()
         
         # keep track of row/column number for error message
-        self.col += 1
-        if (char == "\n"):
-            self.row += 1
-            self.col = 0
+        if (self.nextChar == "\n"):
+            self.nextRow += 1
+            self.nextCol = 0
+        elif (self.nextChar == "\t"):
+            self.nextCol += 4
+        else:
+            self.nextCol += 1
         
-        return char   
+        return self.fileParser.getNextCharacter()      
     
     def __getErrorMessage(self, previousState):
         if (previousState == "start"):
@@ -172,7 +187,7 @@ class LexicalAnalyser:
         elif (previousState == "dig"):
             return " Alphanumeric character in digit"
         elif (previousState == "asgn"):
-            return" Illegal character after :. Expected ="
+            return" Illegal character after : Expected ="
         elif (previousState == "rem"):
             return " Comment block closing sign (#) missing"
 

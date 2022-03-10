@@ -4,8 +4,205 @@ AM:         4914
 Username:   cse94914
 """
 
-import sys
-from LexicalAnalyser import LexicalAnalyser
+# to run from cmd: python SyntaxAnalser.py fibonacci.c
+
+import sys, os
+
+class FileParser:
+    def __init__(self, filename):
+        directory = os.path.dirname(__file__)
+        self.filename = os.path.join(directory, filename)
+        self.file = open(self.filename, "r")
+        
+    def __del__(self):
+        self.file.close()
+    
+    def getNextCharacter(self):
+        return self.file.read(1)
+
+class Token:
+    
+    def __init__(self, lexicalUnit, family, position):
+        self.lexicalUnit = lexicalUnit
+        self.family = family
+        self.position = position
+
+class LexicalAnalyser:
+    
+    def __init__(self, filename):
+        self.fileParser = FileParser(filename)
+        self.nextChar = " "
+        self.lexicalUnit = ""
+        self.state = "start"
+        self.row = 1
+        self.col = 1
+        self.nextRow = 1
+        self.nextCol = 1
+        self.ignoreSymbols = [" ", "\t", "\n"]
+        self.states = [['start', 'idk', 'dig', 'addOperator', 'mulOperator',
+                        'groupSymbol', 'delimiter', 'asgn', 'smaller',
+                        'larger', 'relOperator', 'rem', 'eof', 'error'],
+                       ['id/key', 'idk', 'idk', 'id/key', 'id/key', 'id/key',
+                        'id/key', 'id/key', 'id/key', 'id/key', 'id/key',
+                        'id/key', 'id/key', 'id/key'],
+                       ['number', 'error', 'dig', 'number', 'number', 'number',
+                        'number', 'number', 'number', 'number', 'number',
+                        'number', 'number', 'number'],
+                       ['error', 'error', 'error', 'error', 'error', 'error',
+                        'error', 'error', 'error', 'error', 'assignment',
+                        'error', 'error', 'error'],
+                       ['relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperator', 'relOperator', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt'],
+                       ['relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt', 'relOperatorBt',
+                        'relOperatorBt', 'relOperator', 'relOperatorBt',
+                        'relOperatorBt', 'relOperatorBt'],
+                       ['rem', 'rem', 'rem', 'rem', 'rem', 'rem', 'rem', 'rem',
+                        'rem', 'rem', 'rem', 'start', 'error', 'rem'] ]
+        self.internalState = {'start' : 0, 'idk' : 1, 'dig' : 2, 'asgn' : 3,
+                              'smaller' : 4, 'larger' : 5, 'rem' : 6}
+        self.reservedWords = ["program", "declare", "if", "else",  "while",
+                              "switchcase", "forcase", "incase", "case",
+                              "default", "not", "and", "or", "function",
+                              "procedure", "call", "return", "in", "inout", 
+                              "input", "print"]
+        
+    """
+    Returns the lexical unit token to the syntax analyser.
+    According to the current state it consumes the next char or not.
+    """
+    def getNextLexicalUnit(self):
+        
+        self.state = "start"
+        self.lexicalUnit = ""
+        self.row = self.nextRow
+        self.col = self.nextCol
+        
+        while True:
+            
+            previousState = self.state
+            
+            # Get state array index accoding to next input character
+            inputVal = self.__getNextInputIndex(self.nextChar)
+                
+            # find next state from table of states
+            self.state = self.states[self.internalState[self.state]][inputVal]
+            
+            # Take action according to state
+            if (self.state in ["start", "rem"]):
+                self.nextChar = self.__nextChar()
+            
+            elif (self.state in ["idk", "dig", "asgn", "smaller", "larger"]):
+                self.lexicalUnit += self.nextChar
+                self.nextChar = self.__nextChar()
+            
+            elif (self.state == "id/key"):
+                # check for lexical units with more than 30 characters
+                if (len(self.lexicalUnit) > 30):
+                    msg = " Lexical unit is more than 30 characters long"
+                    error = ("LexError at {}.".format((self.row, self.col)) 
+                             + msg)
+                    # return Token(error, "error", (self.row, self.col))
+                    print(error)
+                    sys.exit()
+                
+                if (self.lexicalUnit in self.reservedWords):
+                    return Token(self.lexicalUnit, "keyword", 
+                                 (self.row, self.col))
+                else:
+                    return Token(self.lexicalUnit, "identifier", 
+                                 (self.row, self.col))
+            
+            elif (self.state == "number"):
+                # check for numbers < -2^32-1 or > 2^32-1
+                if (abs(int(self.lexicalUnit)) > 4294967295):
+                    msg = " Number exceeds maximum supported"
+                    error = ("LexError at {}.".format((self.row, self.col)) 
+                             + msg)
+                    # return Token(error, "error", (self.row, self.col))
+                    print(error)
+                    sys.exit()
+                
+                return Token(self.lexicalUnit, self.state, 
+                             (self.row, self.col))
+           
+            elif (self.state in ["addOperator", "mulOperator", "groupSymbol",
+                                 "delimiter", "assignment", "relOperator",
+                                 "eof"]):
+                # if (self.nextChar == ""): 
+                #     return
+                self.lexicalUnit += self.nextChar
+                self.nextChar = self.__nextChar()
+                return Token(self.lexicalUnit, self.state, (self.row, self.col))
+           
+            elif (self.state == "relOperatorBt"):
+                return Token(self.lexicalUnit, "relOperator", 
+                             (self.row, self.col))
+            
+            elif (self.state == "error"):
+                msg = self.__getErrorMessage(previousState)   
+                error = ("LexError at {}.".format((self.row, self.col)) + msg)
+                # return Token(error, self.state, (self.row, self.col))
+                print(error)
+                sys.exit()
+
+    def __getNextInputIndex(self, char):
+        
+           if (char in self.ignoreSymbols):
+               return 0
+           elif (char.isalpha()):
+               return 1
+           elif (char.isdigit()):
+               return 2
+           elif (char in ["+", "-"]):
+               return 3
+           elif (char in ["*", "/"]):
+               return 4
+           elif (char in ["{", "}", "[", "]", "(", ")"]):
+               return 5
+           elif (char in [",", ";", "."]):
+               return 6
+           elif (char == ":"):
+               return 7
+           elif (char == "<"):
+               return 8
+           elif (char == ">"):
+               return 9
+           elif (char == "="):
+               return 10
+           elif (char == "#"):
+               return 11
+           elif (char == ""):   # EOF
+               return 12
+           else:
+               return 13
+        
+    def __nextChar(self):
+        
+        # keep track of row/column number for error message
+        if (self.nextChar == "\n"):
+            self.nextRow += 1
+            self.nextCol = 0
+        elif (self.nextChar == "\t"):
+            self.nextCol += 4
+        else:
+            self.nextCol += 1
+        
+        return self.fileParser.getNextCharacter()      
+    
+    def __getErrorMessage(self, previousState):
+        if (previousState == "start"):
+            return " Character not supported"
+        elif (previousState == "dig"):
+            return " Alphanumeric character in digit"
+        elif (previousState == "asgn"):
+            return" Illegal character after : Expected ="
+        elif (previousState == "rem"):
+            return " Comment block closing sign (#) missing"
 
 class SyntaxAnalyser:
     
@@ -659,20 +856,11 @@ class SyntaxAnalyser:
 
 if __name__ == "__main__":
     
-    syntaxAnalyser = SyntaxAnalyser("countDigits.c")
-    syntaxAnalyser.run()
+    if len(sys.argv) != 2:
+        print("Wrong arguments. Must give just the filename")
+        sys.exit()
+
+    filename = sys.argv[1]
     
-    syntaxAnalyser = SyntaxAnalyser("factorial.c")
-    syntaxAnalyser.run()
-    
-    syntaxAnalyser = SyntaxAnalyser("fibonacci.c")
-    syntaxAnalyser.run()
-    
-    syntaxAnalyser = SyntaxAnalyser("primes.c")
-    syntaxAnalyser.run()
-    
-    syntaxAnalyser = SyntaxAnalyser("summation.c")
-    syntaxAnalyser.run()
-        
-    syntaxAnalyser = SyntaxAnalyser("test.c")
+    syntaxAnalyser = SyntaxAnalyser(filename)
     syntaxAnalyser.run()

@@ -4,7 +4,7 @@ AM:         4914
 Username:   cse94914
 """
 
-# to run from cmd: python main.py fibonacci.c
+# to run from cmd: python cimple.py fibonacci.c
 
 import sys
 from Compiler import Compiler
