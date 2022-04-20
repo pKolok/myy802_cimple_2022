@@ -49,9 +49,8 @@ class IntermediateCode:
         return list1 + list2
         
     def backpatch(self, list, label):
-        for quad in self.quads:
-            if quad.label in list:
-                quad.result = label
+        for l in list:
+            self.quads[int(l)-100].result = label
         return
     
     def print(self):
