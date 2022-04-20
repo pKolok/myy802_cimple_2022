@@ -1,0 +1,10 @@
+program test
+{
+	incase
+		case (a > 0)
+			a := a - 1;
+		case (a < 0)
+			a := a + 1;
+		#default
+			a:=0; #
+}.

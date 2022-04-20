@@ -1,0 +1,10 @@
+program test
+{
+	switchcase
+		case (D > 0)
+			a := 1;
+		case (D < 0)
+			a := 2;
+		default
+			a := 3;
+}.
