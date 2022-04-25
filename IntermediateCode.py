@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 """
-Created on Wed Apr 13 20:37:00 2022
-
-@author: panou
+Name:       PANAGIOTIS KOLOKOURIS
+AM:         4914
+Username:   cse94914
 """
 
 class Quad:
@@ -18,7 +17,54 @@ class Quad:
     def toString(self):
         return (self.label + ": " + self.operator + ", " + self.arg1 + ", " 
                 + self.arg2 + ", " + self.result)
-
+    
+    def toC(self):
+        
+        if self.operator in ["begin_block", "end_block"]:
+            cCode = "L_" + self.label + ":"
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        if self.operator == "halt":
+            cCode = "L_" + self.label + ": return(0);"
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        if (self.operator == ":="):
+            cCode = ("L_" + self.label + ": " + self.result + "=" + self.arg1 
+                    + ";")
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        if (self.operator in ["+", "-", "*", "/"]):
+            cCode = ("L_" + self.label + ": " + self.result + "=" 
+                    + self.arg1 + self.operator + self.arg2 + ";")
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        if (self.operator == "="):
+            cCode = ("L_" + self.label + ": if (" + self.arg1 + "==" 
+                    + self.arg2 + ") goto L_" + self.result + ";")
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        if (self.operator in [">", "<", "<>", ">=", "<="]):
+            cCode = ("L_" + self.label + ": if (" + self.arg1 + self.operator 
+                    + self.arg2 + ") goto L_" + self.result + ";")
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        if (self.operator == "jump"):
+            cCode = ("L_" + self.label + ": goto L_" + self.result + ";")
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        if (self.operator == "in"):
+            cCode = ("L_" + self.label + ": scanf(%d, &" + self.arg1 + ");")
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        if (self.operator == "out"):
+            cCode = ("L_" + self.label + ": printf(%d, " + self.arg1 + ");")
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        if (self.operator == "ret"):
+            cCode = ("L_" + self.label + ":return(" + self.arg1 + ");")
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")
+        
 class IntermediateCode:
     
     def __init__(self):
@@ -56,8 +102,61 @@ class IntermediateCode:
     def print(self):
         for quad in self.quads:
             print(quad.toString())
-    
+            
+    def saveToFile(self):
+        file = open("test.int", "w")
+        for quad in self.quads:
+            file.write(quad.toString() + "\n")
+        file.close()
+        
+    def convertToC(self):
+        cLines = ["int main()", "{"]
+        
+        # Collect variables
+        variables = self.__discoverVariables()
+        if (len(variables) == 0):
+            return
+        
+        variableLine = "int "
+        for var in variables:
+            variableLine += var + ","
+        variableLine = variableLine[:-1] + ";"
+        cLines.append(variableLine)
+        
+        # Construct remaining c lines
+        for quad in self.quads:
+            cLines.append(quad.toC())
+        
+        # Save to file
+        file = open("test.c", "w")
+        for line in cLines:
+            file.write(line + "\n")
+        file.close()
 
+    def __discoverVariables(self):
+        variables = set()
+        
+        for quad in self.quads:
+            
+            # if function/procedure is discovered -> exit
+            if quad.operator == "par":
+                return set()
+            
+            # skip some lines entirely
+            if quad.operator in ["begin_block", "end_block", "halt", "jump"]:
+                continue
+            
+            # everything which is not a number or "_" is a variable
+            if (not quad.arg1.isdigit() and quad.arg1 != "_"):
+                variables.add(quad.arg1)
+            if (not quad.arg2.isdigit() and quad.arg2 != "_"):
+                variables.add(quad.arg2)
+            if (not quad.result.isdigit() and quad.result != "_"):
+                variables.add(quad.result)
+
+        return variables
+    
+    
 # test Intermediate code
 if __name__ == "__main__":
     

@@ -7,6 +7,7 @@ Username:   cse94914
 import sys
 from LexicalAnalyser import LexicalAnalyser
 from IntermediateCode import IntermediateCode
+from SymbolsTable import SymbolsTable
 
 class SyntaxAnalyser:
     
@@ -18,6 +19,7 @@ class SyntaxAnalyser:
         self.ADD_OP = ["+", "-"]
         self.MUL_OP = ["*", "/"]
         self.intermediateCode = IntermediateCode()
+        self.symbolsTable = SymbolsTable()
 
     def run(self): 
         self.__program()
@@ -25,6 +27,8 @@ class SyntaxAnalyser:
         print("--------------------------------------")
         print("Intermediate Code:")
         self.intermediateCode.print()
+        self.intermediateCode.saveToFile()
+        self.intermediateCode.convertToC()
     
     def __getNextToken(self):
         self.token = self.lexicalAnalyser.getNextLexicalUnit()
@@ -569,7 +573,7 @@ class SyntaxAnalyser:
             if (self.token.family == "identifier"):
                 
                 id_Place = self.token.lexicalUnit
-                self.intermediateCode.genQuad("inp", id_Place, "_", "_")
+                self.intermediateCode.genQuad("in", id_Place, "_", "_")
                 
                 self.__getNextToken()
             else:
@@ -839,44 +843,38 @@ class SyntaxAnalyser:
 
 if __name__ == "__main__":
     
+    ### Test Syntax Analyser ###
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/countDigits.c")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/factorial.c")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/fibonacci.c")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/primes.c")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/summation.c")
     # syntaxAnalyser.run()
-        
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/test.c")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_armstrong.ci")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_factorialnew.ci")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_HappyDay.ci")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_max3.ci")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_pap.ci")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_power.ci")
     # syntaxAnalyser.run()
-    
     # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_test_parser.ci")
     # syntaxAnalyser.run()
     
-    syntaxAnalyser = SyntaxAnalyser("IntermediateCodeTests/ifWhile.c")
+    ### Test Intermediate Code ###
+    # syntaxAnalyser = SyntaxAnalyser("IntermediateCodeTests/ifWhile.c")
+    # syntaxAnalyser.run()
+    
+    ### Test Symbols Table ###
+    syntaxAnalyser = SyntaxAnalyser("SymbolsTableTests/symbol.c")
     syntaxAnalyser.run()

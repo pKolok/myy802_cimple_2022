@@ -28,7 +28,7 @@ if __name__ == "__main__":
     
     fileParser = FileParser(filename)
     char = fileParser.getNextCharacter()
-    # while (char != ""):
+    
     while True:
         if (char == "\n"):
             print("new line")
