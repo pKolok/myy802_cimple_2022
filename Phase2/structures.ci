@@ -1,0 +1,36 @@
+program test
+{
+	declare a,b,D;
+	
+	if (a>b)
+		b:=b+1;
+	else
+		b:=b-1;;
+		
+	while (a>b)
+		b:=b+1;;
+	
+	switchcase
+	case (D > 0)
+		a := 1;
+	case (D < 0)
+		a := 2;
+	default
+		a := 3;;
+		
+	forcase
+	case (a > 0)
+		a := a - 1;
+	case (a < 0)
+		a := a + 1;
+	default
+		;;
+		
+	incase
+	case (a > 0)
+		a := a - 1;
+	case (a < 0)
+		a := a + 1;
+	#default
+		a:=0; #
+}.

@@ -27,7 +27,7 @@ class Quad:
         if self.operator == "end_block":
             cCode = "L_" + self.label + ": ;"
             comment = "// " + self.toString()
-            return (f"{cCode : <35}{comment : <30}")        
+            return (f"{cCode : <35}{comment : <30}")
         if self.operator == "halt":
             cCode = "L_" + self.label + ": return(0);"
             comment = "// " + self.toString()
@@ -57,11 +57,13 @@ class Quad:
             comment = "// " + self.toString()
             return (f"{cCode : <35}{comment : <30}")
         if (self.operator == "in"):
-            cCode = ("L_" + self.label + ": scanf(\"%d\", &" + self.arg1 + ");")
+            cCode = ("L_" + self.label + ": scanf(\"%d\", &" + self.arg1 
+                     + ");")
             comment = "// " + self.toString()
             return (f"{cCode : <35}{comment : <30}")
         if (self.operator == "out"):
-            cCode = ("L_" + self.label + ": printf(\"%d\", " + self.arg1 + ");")
+            cCode = ("L_" + self.label + ": printf(\"%d\\n\", " + self.arg1 
+                     + ");")
             comment = "// " + self.toString()
             return (f"{cCode : <35}{comment : <30}")
         if (self.operator == "ret"):
@@ -103,7 +105,7 @@ class IntermediateCode:
             self.quads[int(l)-100].result = label
         return
     
-    def print(self):
+    def printOut(self):
         for quad in self.quads:
             print(quad.toString())
             
