@@ -1,4 +1,3 @@
-
 program armstrong {
 
     declare num;
@@ -11,7 +10,7 @@ program armstrong {
     temp := num;
     while (temp > 0)
     {
-        digit := temp / 10;
+        digit := temp / (-10);
         sum := sum + digit * digit * digit;
         temp := temp / 10;
     };

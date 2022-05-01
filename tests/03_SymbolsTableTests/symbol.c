@@ -1,39 +1,39 @@
 program symbol
 { 
-	const A=1;
+	#const A=1;#
 	declare a,b,c;
 
 	procedure P1(in x, inout y)
 	{ 
 		declare a;
 
-		function F11(in x);
+		function F11(in x)
 		{
 			declare a;
 			
 			# body of F11 #
-			b = a;
-			a = x;
-			c = F11(in x);
+			b := a;
+			a := x;
+			c := F11(in x);
 			return (c);
 		}
 
 		function F12(in x)
 		{ 
 			# body of F12 #
-			c = F11(in x);
+			c := F11(in x);
 			return (c);
 		}
 
 		# body of P1 #
-		y = x;
+		y := x;
 	}
 
-	procedure P2(inout x)
+	procedure P2(inout y)
 	{ 
 		declare x;
 		# body of P2 #
-		y = A;
+		y := A;
 		call P1(in x, inout y);
 	}
 
@@ -41,4 +41,4 @@ program symbol
 	call P1(in a, inout b);
 	call P2(in c);
 
-}
+}.

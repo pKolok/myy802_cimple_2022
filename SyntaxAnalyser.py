@@ -25,10 +25,15 @@ class SyntaxAnalyser:
         self.__program()
         print("Compilation completed successfully (" + self.filename + ")")
         print("--------------------------------------")
-        print("Intermediate Code:")
+        print(">>> Intermediate Code: <<<")
         self.intermediateCode.print()
         self.intermediateCode.saveToFile()
         self.intermediateCode.convertToC()
+        print("--------------------------------------")
+        print(">>> Scope trace: <<<")
+        self.symbolsTable.printScopeTrace()
+        self.symbolsTable.saveScopeTraceToFile()
+        print("--------------------------------------")
     
     def __getNextToken(self):
         self.token = self.lexicalAnalyser.getNextLexicalUnit()
@@ -37,6 +42,9 @@ class SyntaxAnalyser:
         if (self.token.lexicalUnit == "program"):
             
             self.__getNextToken()
+            
+            # Symbols table
+            self.symbolsTable.addScope("main")
             
             if (self.token.family == "identifier"):
                 name = self.token.lexicalUnit
@@ -47,6 +55,12 @@ class SyntaxAnalyser:
                 
                 self.intermediateCode.genQuad("halt", "_", "_", "_")
                 self.intermediateCode.genQuad("end_block", name, "_", "_")
+
+                # Symbols table
+                frameLength = self.symbolsTable.getTopScopeSize()
+                self.symbolsTable.saveScopeString()
+                self.symbolsTable.removeLastScope()
+                self.symbolsTable.setMainFrameLength(frameLength)
 
                 if (self.token.lexicalUnit == "."):
                     
@@ -85,6 +99,10 @@ class SyntaxAnalyser:
             
             self.intermediateCode.genQuad("begin_block", name, "_", "_")
             
+            # Symbols Table
+            self.symbolsTable.fillInStartingQuad(self.intermediateCode
+                                                 .nextQuad())
+            
             self.__blockstatements()
 
             if (self.token.lexicalUnit == "}"):
@@ -117,12 +135,20 @@ class SyntaxAnalyser:
                 
     def __varlist(self):
         if (self.token.family == "identifier"):
+            
+            # Symbols Table
+            self.symbolsTable.addVariable(self.token.lexicalUnit)
+            
             self.__getNextToken()
           
             while(self.token.lexicalUnit == ","):
                 self.__getNextToken()
                 
                 if (self.token.family == "identifier"):
+                    
+                    # Symbols Table
+                    self.symbolsTable.addVariable(self.token.lexicalUnit)
+                    
                     self.__getNextToken()
                     
                 else:
@@ -133,11 +159,29 @@ class SyntaxAnalyser:
             
     def __subprograms(self):
         while (self.token.lexicalUnit in ["function", "procedure"]):
-            self.__getNextToken()
             
-            name = self.token.lexicalUnit
+            # Symbols Table
+            # Add function to current scope
+            if (self.token.lexicalUnit == "function"):
+                self.__getNextToken()
+                name = self.token.lexicalUnit
+                self.symbolsTable.addFunction(name, "int")
+            # Add procedure to current scope
+            else:
+                self.__getNextToken()
+                name = self.token.lexicalUnit
+                self.symbolsTable.addProcedure(name)
+            
+            # Symbols Table
+            self.symbolsTable.addScope(name)
             
             self.__subprogram(name)
+            
+            # Symbols Table
+            frameLength = self.symbolsTable.getTopScopeSize()
+            self.symbolsTable.saveScopeString()
+            self.symbolsTable.removeLastScope()
+            self.symbolsTable.fillInFrameLength(frameLength)
             
             self.intermediateCode.genQuad("end_block", name, "_", "_")
 
@@ -159,7 +203,8 @@ class SyntaxAnalyser:
                     print("Expecting closing bracket at ({},{})"
                           .format(self.token.position[0], 
                                   self.token.position[1])
-                          + " instead received '" + self.token.lexicalUnit + "'") 
+                          + " instead received '" + self.token.lexicalUnit 
+                          + "'") 
                     sys.exit() 
             else:
                 print("Expecting opening bracket at ({},{})"
@@ -184,9 +229,19 @@ class SyntaxAnalyser:
                 
     def __formalparitem(self):
         if (self.token.lexicalUnit in ["in", "inout"]):
+            
+            # Symbols Table
+            mode = "cv" if self.token.lexicalUnit == "in" else "ref"
+            
             self.__getNextToken()
             
             if (self.token.family == "identifier"):
+                
+                # Symbols Table
+                name = self.token.lexicalUnit
+                self.symbolsTable.addParameter(name, "int", mode)
+                self.symbolsTable.appendFormalParameterToCaller()
+                
                 self.__getNextToken()
             else:
                 print("Expecting variable name at ({},{})"
@@ -460,6 +515,9 @@ class SyntaxAnalyser:
         firstCondQuad = self.intermediateCode.nextQuad()
         self.intermediateCode.genQuad(":=", "0", "_", flag)
         
+        # Symbols Table
+        self.symbolsTable.addTemporaryVariable(flag)
+        
         while (self.token.lexicalUnit == "case"):
             self.__getNextToken()
             
@@ -498,7 +556,7 @@ class SyntaxAnalyser:
             self.__getNextToken()
             
             E_Place = self.__expression()
-            self.intermediateCode.genQuad("ret", E_Place, "_", "_")
+            self.intermediateCode.genQuad("ret", "_", "_", E_Place)
             
             if (self.token.lexicalUnit == ")"):
                 self.__getNextToken()
@@ -599,7 +657,7 @@ class SyntaxAnalyser:
         if (self.token.lexicalUnit in ["in", "inout"]): # new addition
 
             # Save parameters and return types to a list until all parameters
-            # have been found. Then create groups of four
+            # have been found. Then create groups of quads
             parameters = []
             returnTypes = []
             parameter, returnType = self.__actualparitem()
@@ -744,9 +802,8 @@ class SyntaxAnalyser:
             
 
     def __expression(self):
-        self.__optionalSign()
 
-        T1_Place = self.__term()
+        T1_Place = self.__optionalSign() + self.__term()
         
         while (self.token.lexicalUnit in self.ADD_OP):
             op = self.token.lexicalUnit
@@ -757,6 +814,9 @@ class SyntaxAnalyser:
             w = self.intermediateCode.newTemp()
             self.intermediateCode.genQuad(op, T1_Place, T2_Place, w)
             T1_Place = w
+            
+            # Symbols Table
+            self.symbolsTable.addTemporaryVariable(w)
         
         return T1_Place
     
@@ -773,6 +833,9 @@ class SyntaxAnalyser:
             w = self.intermediateCode.newTemp()
             self.intermediateCode.genQuad(op, F1_Place, F2_Place, w)
             F1_Place = w
+            
+            # Symbols Table
+            self.symbolsTable.addTemporaryVariable(w)
             
         return F1_Place
 
@@ -824,6 +887,9 @@ class SyntaxAnalyser:
             self.intermediateCode.genQuad("par", w, "RET", "_")
             self.intermediateCode.genQuad("call", identifier, "_", "_")
             
+            # Symbols Table
+            self.symbolsTable.addTemporaryVariable(w)
+            
             if (self.token.lexicalUnit == ")"):
                 self.__getNextToken()
             else:
@@ -838,43 +904,47 @@ class SyntaxAnalyser:
                 
     def __optionalSign(self):
         if (self.token.lexicalUnit in self.ADD_OP):
+            sign = self.token.lexicalUnit
             self.__getNextToken()
+            return sign
+        return ""
     
 
 if __name__ == "__main__":
     
     ### Test Syntax Analyser ###
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/countDigits.c")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/factorial.c")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/fibonacci.c")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/primes.c")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/summation.c")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/test.c")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_armstrong.ci")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_factorialnew.ci")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_HappyDay.ci")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_max3.ci")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_pap.ci")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_power.ci")
-    # syntaxAnalyser.run()
-    # syntaxAnalyser = SyntaxAnalyser("SyntaxAnalyserTests/_test_parser.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/countDigits.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/factorial.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/fibonacci.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/primes.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/summation.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/test.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_armstrong.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_factorialnew.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_HappyDay.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_max3.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_pap.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_power.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_test_parser.ci")
     # syntaxAnalyser.run()
     
     ### Test Intermediate Code ###
-    # syntaxAnalyser = SyntaxAnalyser("IntermediateCodeTests/ifWhile.c")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/ex1.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/ex2.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/ex3.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/factorial.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/forcase.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/if.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/ifWhile.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/incase.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/powerOf2.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/small.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/switchcase.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/test.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/while.ci")
     # syntaxAnalyser.run()
     
     ### Test Symbols Table ###
-    syntaxAnalyser = SyntaxAnalyser("SymbolsTableTests/symbol.c")
+    # syntaxAnalyser = SyntaxAnalyser("03_SymbolsTableTests/ps.c")
+    syntaxAnalyser = SyntaxAnalyser("03_SymbolsTableTests/symbol.c")
     syntaxAnalyser.run()

@@ -20,10 +20,14 @@ class Quad:
     
     def toC(self):
         
-        if self.operator in ["begin_block", "end_block"]:
+        if self.operator == "begin_block":
             cCode = "L_" + self.label + ":"
             comment = "// " + self.toString()
             return (f"{cCode : <35}{comment : <30}")
+        if self.operator == "end_block":
+            cCode = "L_" + self.label + ": ;"
+            comment = "// " + self.toString()
+            return (f"{cCode : <35}{comment : <30}")        
         if self.operator == "halt":
             cCode = "L_" + self.label + ": return(0);"
             comment = "// " + self.toString()
@@ -53,11 +57,11 @@ class Quad:
             comment = "// " + self.toString()
             return (f"{cCode : <35}{comment : <30}")
         if (self.operator == "in"):
-            cCode = ("L_" + self.label + ": scanf(%d, &" + self.arg1 + ");")
+            cCode = ("L_" + self.label + ": scanf(\"%d\", &" + self.arg1 + ");")
             comment = "// " + self.toString()
             return (f"{cCode : <35}{comment : <30}")
         if (self.operator == "out"):
-            cCode = ("L_" + self.label + ": printf(%d, " + self.arg1 + ");")
+            cCode = ("L_" + self.label + ": printf(\"%d\", " + self.arg1 + ");")
             comment = "// " + self.toString()
             return (f"{cCode : <35}{comment : <30}")
         if (self.operator == "ret"):
@@ -110,7 +114,7 @@ class IntermediateCode:
         file.close()
         
     def convertToC(self):
-        cLines = ["int main()", "{"]
+        cLines = ["#include <stdio.h>", "", "int main()", "{"]
         
         # Collect variables
         variables = self.__discoverVariables()
@@ -126,6 +130,7 @@ class IntermediateCode:
         # Construct remaining c lines
         for quad in self.quads:
             cLines.append(quad.toC())
+        cLines.append("}")
         
         # Save to file
         file = open("test.c", "w")
