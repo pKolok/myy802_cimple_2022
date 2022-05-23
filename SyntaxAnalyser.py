@@ -8,6 +8,7 @@ import sys
 from LexicalAnalyser import LexicalAnalyser
 from IntermediateCode import IntermediateCode
 from SymbolsTable import SymbolsTable
+from FinalCode import FinalCode
 
 class SyntaxAnalyser:
     
@@ -20,6 +21,7 @@ class SyntaxAnalyser:
         self.MUL_OP = ["*", "/"]
         self.intermediateCode = IntermediateCode()
         self.symbolsTable = SymbolsTable()
+        self.finalCode = FinalCode(self.intermediateCode, self.symbolsTable)
 
     def run(self): 
         self.__program()
@@ -33,6 +35,10 @@ class SyntaxAnalyser:
         print(">>> Scope trace: <<<")
         self.symbolsTable.printScopeTrace()
         self.symbolsTable.saveScopeTraceToFile()
+        print("--------------------------------------")
+        print(">>> Final Code: <<<")
+        self.finalCode.printToScreen()
+        self.finalCode.writeToFile()
         print("--------------------------------------")
     
     def __getNextToken(self):
@@ -58,9 +64,14 @@ class SyntaxAnalyser:
 
                 # Symbols table
                 frameLength = self.symbolsTable.getTopScopeSize()
+                self.symbolsTable.setMainFrameLength(frameLength)
+                
+                # Final Code
+                self.finalCode.generateFinalCode(frameLength)
+                
                 self.symbolsTable.saveScopeString()
                 self.symbolsTable.removeLastScope()
-                self.symbolsTable.setMainFrameLength(frameLength)
+                # self.symbolsTable.setMainFrameLength(frameLength)
 
                 if (self.token.lexicalUnit == "."):
                     
@@ -177,13 +188,18 @@ class SyntaxAnalyser:
             
             self.__subprogram(name)
             
+            self.intermediateCode.genQuad("end_block", name, "_", "_")
+            
             # Symbols Table
             frameLength = self.symbolsTable.getTopScopeSize()
-            self.symbolsTable.saveScopeString()
-            self.symbolsTable.removeLastScope()
             self.symbolsTable.fillInFrameLength(frameLength)
             
-            self.intermediateCode.genQuad("end_block", name, "_", "_")
+            # Final Code
+            self.finalCode.generateFinalCode(frameLength)
+            
+            # Symbols Table
+            self.symbolsTable.saveScopeString()
+            self.symbolsTable.removeLastScope()
 
     def __subprogram(self, name):
         if (self.token.family == "identifier"):
@@ -813,10 +829,11 @@ class SyntaxAnalyser:
             T2_Place = self.__term()
             w = self.intermediateCode.newTemp()
             self.intermediateCode.genQuad(op, T1_Place, T2_Place, w)
-            T1_Place = w
             
             # Symbols Table
             self.symbolsTable.addTemporaryVariable(w)
+            
+            T1_Place = w
         
         return T1_Place
     
@@ -832,10 +849,11 @@ class SyntaxAnalyser:
             F2_Place = self.__factor()
             w = self.intermediateCode.newTemp()
             self.intermediateCode.genQuad(op, F1_Place, F2_Place, w)
-            F1_Place = w
             
             # Symbols Table
             self.symbolsTable.addTemporaryVariable(w)
+            
+            F1_Place = w
             
         return F1_Place
 
@@ -913,19 +931,19 @@ class SyntaxAnalyser:
 if __name__ == "__main__":
     
     ### Test Syntax Analyser ###
-    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/countDigits.ci")
-    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/factorial.ci")
-    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/fibonacci.ci")
-    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/primes.ci")
-    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/summation.ci")
-    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/test.ci")
-    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_armstrong.ci")
+    syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_armstrong.ci")
     # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_factorialnew.ci")
     # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_HappyDay.ci")
     # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_max3.ci")
     # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_pap.ci")
     # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_power.ci")
     # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_test_parser.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/countDigits.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/factorial.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/fibonacci.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/primes.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/summation.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/test.ci")
     # syntaxAnalyser.run()
     
     ### Test Intermediate Code ###
@@ -936,7 +954,7 @@ if __name__ == "__main__":
     # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/if.ci")
     # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/ifWhile.ci")
     # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/incase.ci")
-    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/powerOf2.ci")
+    # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/random.ci")
     # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/small.ci")
     # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/switchcase.ci")
     # syntaxAnalyser = SyntaxAnalyser("02_IntermediateCodeTests/test.ci")
@@ -945,5 +963,11 @@ if __name__ == "__main__":
     
     ### Test Symbols Table ###
     # syntaxAnalyser = SyntaxAnalyser("03_SymbolsTableTests/ps.c")
-    syntaxAnalyser = SyntaxAnalyser("03_SymbolsTableTests/symbol.c")
+    # syntaxAnalyser = SyntaxAnalyser("03_SymbolsTableTests/symbol.c")
+    # syntaxAnalyser.run()
+    
+    ### Test Final Code ###
+    # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/gnlvcode.c")
+    # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/ex1.c")
+    # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/ex2.c")
     syntaxAnalyser.run()

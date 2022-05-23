@@ -14,6 +14,21 @@ class Quad:
         self.arg2 = arg2
         self.result = result
         
+    def getLabel(self):
+        return self.label
+        
+    def getOperator(self):
+        return self.operator
+    
+    def getArg1(self):
+        return self.arg1
+    
+    def getArg2(self):
+        return self.arg2
+    
+    def getResult(self):
+        return self.result
+        
     def toString(self):
         return (self.label + ": " + self.operator + ", " + self.arg1 + ", " 
                 + self.arg2 + ", " + self.result)
@@ -78,6 +93,9 @@ class IntermediateCode:
         self.variableCounter = 0
         self.quads = []
         
+    def getListOfQuads(self):
+        return self.quads
+    
     def genQuad(self, op, arg1, arg2, result):
         quad = Quad(str(self.nextLabel), op, arg1, arg2, result)
         self.quads.append(quad)

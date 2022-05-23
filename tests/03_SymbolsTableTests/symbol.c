@@ -33,7 +33,7 @@ program symbol
 	{ 
 		declare x;
 		# body of P2 #
-		y := A;
+		y := 1;
 		call P1(in x, inout y);
 	}
 
