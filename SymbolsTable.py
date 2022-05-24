@@ -55,6 +55,9 @@ class SymbolsTable:
         
     def setMainFrameLength(self, frameLength):
         self.mainFrameLength = frameLength
+        
+    def getMainFrameLength(self):
+        return self.mainFrameLength
     
     def saveScopeString(self):
         self.scopeStrings.append(self.scopes[-1].toString())

@@ -1,0 +1,31 @@
+program armstrong {
+
+    declare num;
+    declare sum;
+    declare temp;
+    declare step;
+    declare a,b;
+
+    input(num);
+    temp := num;
+	if (temp > 0)
+	{
+		step := -1;
+	}
+	else
+	{
+		step := 1;
+	};
+	
+	sum := 0;
+	while (temp <> 0)
+    {
+        sum := sum + 1;
+        temp := temp + step;
+    };
+
+    if (num = 10)
+        print(sum);
+    else
+        print(sum);
+}.

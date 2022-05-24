@@ -1,0 +1,20 @@
+program test
+{
+	declare x,a;
+	
+	input(x);
+	
+	switchcase
+		case (x < 0)
+			a := x + 10;
+		case (x = 0)
+			a := x - 10;
+		case (x >= 50)
+			a := x / 10;
+		case (x > 0)
+			a := x * 3;
+		default
+			a := 3;
+	;
+	print(a);
+}.

@@ -31,6 +31,10 @@ program primes
 	# body of main #
 	i := 2;
 	while (i<=30)
+	{
 		if (isPrime(in i)=1)
 			print(i);;
+		
+		i := i + 1;
+	}
 }.

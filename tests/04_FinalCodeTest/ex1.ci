@@ -8,9 +8,14 @@ program ex1
 		if (X=1) 
 			return(X); 
 		else 
+		{
+			print(X-1);
 			return(P1(in X-1,inout Y)); 
+		}
 	} 
 	c:=10; 
 	b:=5; 
 	g:=P1(in c, inout b); 
+	
+	print(g);
 }.

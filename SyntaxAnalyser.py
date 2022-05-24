@@ -67,11 +67,10 @@ class SyntaxAnalyser:
                 self.symbolsTable.setMainFrameLength(frameLength)
                 
                 # Final Code
-                self.finalCode.generateFinalCode(frameLength)
+                self.finalCode.generateFinalCode()
                 
                 self.symbolsTable.saveScopeString()
                 self.symbolsTable.removeLastScope()
-                # self.symbolsTable.setMainFrameLength(frameLength)
 
                 if (self.token.lexicalUnit == "."):
                     
@@ -195,7 +194,7 @@ class SyntaxAnalyser:
             self.symbolsTable.fillInFrameLength(frameLength)
             
             # Final Code
-            self.finalCode.generateFinalCode(frameLength)
+            self.finalCode.generateFinalCode()
             
             # Symbols Table
             self.symbolsTable.saveScopeString()
@@ -931,7 +930,7 @@ class SyntaxAnalyser:
 if __name__ == "__main__":
     
     ### Test Syntax Analyser ###
-    syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_armstrong.ci")
+    # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_armstrong.ci")
     # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_factorialnew.ci")
     # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_HappyDay.ci")
     # syntaxAnalyser = SyntaxAnalyser("01_SyntaxAnalyserTests/_max3.ci")
@@ -970,4 +969,11 @@ if __name__ == "__main__":
     # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/gnlvcode.c")
     # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/ex1.c")
     # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/ex2.c")
+    # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/ex2_2.c")
+    # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/ex2_3.c")
+    # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/input_output.ci")
+    # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/fibonacci.ci")
+    # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/switchcase_arithm.ci")
+    # syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/ex1.ci")
+    syntaxAnalyser = SyntaxAnalyser("04_FinalCodeTest/maxOfFour.ci")
     syntaxAnalyser.run()
