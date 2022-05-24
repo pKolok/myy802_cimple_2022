@@ -13,7 +13,7 @@ from abc import ABC
 class FileParser:
     def __init__(self, filename):
         directory = os.path.dirname(__file__)
-        self.filename = os.path.join(directory, "tests", filename)
+        self.filename = os.path.join(directory, filename)
         self.file = open(self.filename, "r")
         
     def __del__(self):
@@ -221,21 +221,22 @@ class SyntaxAnalyser:
 
     def run(self): 
         self.__program()
+        print("--------------------------------------")
         print("Compilation completed successfully (" + self.filename + ")")
         print("--------------------------------------")
-        print(">>> Intermediate Code: <<<")
-        self.intermediateCode.printOut()
+        # print(">>> Intermediate Code: <<<")
+        # self.intermediateCode.printOut()
         self.intermediateCode.saveToFile()
         self.intermediateCode.convertToC()
-        print("--------------------------------------")
-        print(">>> Scope trace: <<<")
-        self.symbolsTable.printScopeTrace()
+        # print("--------------------------------------")
+        # print(">>> Scope trace: <<<")
+        # self.symbolsTable.printScopeTrace()
         self.symbolsTable.saveScopeTraceToFile()
-        print("--------------------------------------")
-        print(">>> Final Code: <<<")
-        self.finalCode.printToScreen()
+        # print("--------------------------------------")
+        # print(">>> Final Code: <<<")
+        # self.finalCode.printToScreen()
         self.finalCode.writeToFile()
-        print("--------------------------------------")
+        # print("--------------------------------------")
     
     def __getNextToken(self):
         self.token = self.lexicalAnalyser.getNextLexicalUnit()

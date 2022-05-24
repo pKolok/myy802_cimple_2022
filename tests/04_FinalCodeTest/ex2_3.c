@@ -14,7 +14,7 @@ program ex1
 				b:=a;
 			}
 			
-			call f3(in a, inout A);
+			call f3(in x, inout A);
 		}
 
 		x:=3; A:=2;
