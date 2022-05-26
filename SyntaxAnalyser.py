@@ -305,8 +305,7 @@ class SyntaxAnalyser:
             self.__getNextToken()
             
             self.__statement()
-            
-    
+              
     def __statement(self):
         
         if (self.token.family == "identifier"):
@@ -815,7 +814,6 @@ class SyntaxAnalyser:
             self.intermediateCode.genQuad("jump", "_", "_", "_")
             return R_true, R_false
             
-
     def __expression(self):
 
         T1_Place = self.__optionalSign() + self.__term()
